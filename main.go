@@ -2,41 +2,56 @@ package main
 
 import (
 	"blog-aggregator/internal/config"
-	"fmt"
+	"blog-aggregator/internal/database"
+	"database/sql"
 	"log"
 	"os"
+
+	_ "github.com/lib/pq"
 )
+
+type state struct {
+	db  *database.Queries
+	cfg *config.Config
+}
 
 func main() {
 	cfg, err := config.Read()
 	if err != nil {
 		log.Fatalf("error reading config: %v", err)
 	}
-	fmt.Printf("Read config: %+v\n", cfg)
+
+	db, err := sql.Open("postgres", cfg.DbUrl)
+	if err != nil {
+		log.Fatalf("unable to connect to database: %v", err)
+	}
+	defer db.Close()
+	dbQueries := database.New(db)
 
 	s := &state{
-		config: &cfg,
+		db:  dbQueries,
+		cfg: &cfg,
 	}
 
 	cmds := commands{
-		cmds: make(map[string]func(*state, command) error),
+		registeredCommands: make(map[string]func(*state, command) error),
 	}
 	cmds.register("login", handlerLogin)
+	cmds.register("register", handlerRegister)
+	cmds.register("reset", handlerReset)
+	cmds.register("users", handlerUsers)
 
-	input := os.Args
-	if len(input) < 2 {
-		fmt.Println("Not enough arguments provided")
-		os.Exit(1)
+	if len(os.Args) < 2 {
+		log.Fatal("usage: cli <command> [args...]")
 	}
 
 	cmd := command{
-		name: input[1],
-		args: input[2:],
+		Name: os.Args[1],
+		Args: os.Args[2:],
 	}
 
 	err = cmds.run(s, cmd)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 }

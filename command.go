@@ -1,31 +1,26 @@
 package main
 
 import (
-	"fmt"
+	"errors"
 )
 
 type command struct {
-	name string
-	args []string
+	Name string
+	Args []string
 }
 
 type commands struct {
-	cmds map[string]func(*state, command) error
+	registeredCommands map[string]func(*state, command) error
 }
 
 func (c *commands) run(s *state, cmd command) error {
-	cmdFunc, ok := c.cmds[cmd.name]
+	f, ok := c.registeredCommands[cmd.Name]
 	if !ok {
-		return fmt.Errorf("%s does not exist", cmd.name)
+		return errors.New("command not found")
 	}
-	return cmdFunc(s, cmd)
+	return f(s, cmd)
 }
 
-func (c *commands) register(name string, f func(*state, command) error) error {
-	_, ok := c.cmds[name]
-	if !ok {
-		c.cmds[name] = f
-		return nil
-	}
-	return fmt.Errorf("command %s is already registered", name)
+func (c *commands) register(name string, f func(*state, command) error) {
+	c.registeredCommands[name] = f
 }
