@@ -9,17 +9,6 @@ import (
 	"github.com/google/uuid"
 )
 
-const url = "https://www.wagslane.dev/index.xml"
-
-func handlerAgg(s *state, cmd command) error {
-	feed, err := fetchFeed(context.Background(), url)
-	if err != nil {
-		return fmt.Errorf("unable to fetch feed: %w", err)
-	}
-	fmt.Printf("Feed: %+v\n", feed)
-	return nil
-}
-
 func handlerAddFeed(s *state, cmd command, user database.User) error {
 	if len(cmd.Args) != 2 {
 		return fmt.Errorf("usage: %s <feed name> <url>", cmd.Name)
